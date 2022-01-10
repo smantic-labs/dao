@@ -6,6 +6,10 @@ contract MuichiroDao {
     uint totalVoters;
     uint totalProposals;
 
+
+    // vault is the receiptent of membership fees. 
+    address payable vault; 
+
     enum ProposalType{ ImmediateBan, Ban,  Whitelist, ResetWorld }
     uint[8] Times = [ 1 hours, 1 days, 1 days, 1 weeks ];
     uint[8] RequiredPercentage = [ 60, 30, 30, 75  ];
@@ -20,6 +24,8 @@ contract MuichiroDao {
     struct Voter {
         uint weight;
         uint[8] votes;
+
+        address delegate;
     }
 
     Proposal[8] public proposals;
@@ -30,10 +36,16 @@ contract MuichiroDao {
     event FinishedProposal(uint indexed ProposalID, ProposalType indexed kind, uint startTime, uint pro, uint totalVoters, bool passed);
     event VoteEvent(uint indexed ProposalID, address voter);
 
+    constructor(address payable _vault){ 
+        vault = _vault
+    }
+
     function NewProposal(ProposalType t, string calldata data) public {
         //  we have 8 proposal slots, 
         //  to add a new proposal, the slot should be empty
         //  or the prev proposal should have ended.
+
+        // TODO: if type is reset world, ensure it is unique.
 
         uint proposalID = totalProposals + 1;
         uint pID = proposalID % 8;
@@ -59,10 +71,11 @@ contract MuichiroDao {
         Voter storage voter = voters[msg.sender];
         uint votedAt = voter.votes[pid];
 
-        require(voter.weight > 0);
-        require(votedAt < proposal.startTime, "already voted for this proposal");
-        require(block.timestamp > proposal.startTime );
-        require(block.timestamp < proposal.startTime + Times[uint(proposal.kind)]);
+        assert(voter.weight > 0);
+        assert(voter.delegate == msg.sender);
+        assert(votedAt < proposal.startTime, "already voted for this proposal");
+        assert(block.timestamp > proposal.startTime );
+        assert(block.timestamp < proposal.startTime + Times[uint(proposal.kind)]);
 
         proposal.pro++;
         voter.votes[pid] = block.timestamp ;
@@ -80,7 +93,7 @@ contract MuichiroDao {
         uint time = Times[uint(proposal.kind)];
         uint required = RequiredPercentage[uint(proposal.kind)];
 
-        require(block.timestamp > proposal.startTime + time, "vote has not ended");
+        assert(block.timestamp > proposal.startTime + time);
 
         bool passed;
 
@@ -92,5 +105,39 @@ contract MuichiroDao {
         }
 
         emit FinishedProposal(proposalID, proposal.kind, proposal.startTime, proposal.pro, totalVoters, passed);
+    }
+
+
+    function Voter(address addr) public payable { 
+        // Become a voter or pay for someone else to become a voter. 
+
+        // value should be 0.05 eth
+        assert(msg.value >= 50000000000000000);
+        Voter storage voter = Voters[addr];
+        assert(voter.weight == 0);
+
+        bool sent = vault.send(msg.value);
+
+        require(sent == true, "failed to send eth to vault");
+
+        voter.weight = 1;
+        voter.delegate = addr;
+    }
+
+
+    function Delegate(address _delegate) public { 
+        // Delegate your vote to someone else 
+        // Delegate to yourself to unassign delagation.
+        // cannot delegate if you are not a valid voter.
+        // cannot delegate to a non voter
+        Voter storage voter = Voters[msg.sender]
+        Voter storage delegate = Voters[_delegate) 
+
+        assert(voter.weight != 0);
+        assert(delegate.weight != 0);
+
+        voter.delegate = _delegate;
+
+        delegate.weight++;
     }
 }
