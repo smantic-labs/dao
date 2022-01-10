@@ -1,61 +1,96 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.6;
-/// @title 
+/// @title MuichiroDao
 contract MuichiroDao {
 
-    int totalVoters;
-    int totalProposals;
+    uint totalVoters;
+    uint totalProposals;
 
-    enum ProposalTypes { Ban, ImmediateBan, Whitelist, ResetWorld }
-
-    Proposal[8] public proposals;
+    enum ProposalType{ ImmediateBan, Ban,  Whitelist, ResetWorld }
+    uint[8] Times = [ 1 hours, 1 days, 1 days, 1 weeks ];
+    uint[8] RequiredPercentage = [ 60, 30, 30, 75  ];
 
     struct Proposal { 
-        uint startTime
-        uint endTime 
+        ProposalType kind;
+        uint startTime;
 
-        uint pro   
+        uint pro;
     }
     
     struct Voter {
-        bool weight
-        [8]uint votes
+        uint weight;
+        uint[8] votes;
     }
+
+    Proposal[8] public proposals;
 
     mapping(address => Voter) public voters; 
 
-    function NewProposal(ProposalType t) public {
+    event CreatedProposal(uint indexed ProposalID, ProposalType indexed kind, string data );
+    event FinishedProposal(uint indexed ProposalID, ProposalType indexed kind, uint startTime, uint pro, uint totalVoters, bool passed);
+    event VoteEvent(uint indexed ProposalID, address voter);
 
-        pID = totalProposals + 1
-        prev = proposals[pID % 8] 
-        require(block.timestamp > prev.endTime, "must wait for the next proposal to end")
+    function NewProposal(ProposalType t, string calldata data) public {
+        //  we have 8 proposal slots, 
+        //  to add a new proposal, the slot should be empty
+        //  or the prev proposal should have ended.
 
-        if (t == ProposalTypes.Ban)
+        uint proposalID = totalProposals + 1;
+        uint pID = proposalID % 8;
+        Proposal memory prev = proposals[pID];
 
+        require(block.timestamp > prev.startTime + Times[uint(prev.kind)], "must wait for the next proposal to end");
 
-        proposals.push({ 
-            starTime: block.Timestamp, 
-            endTime: block.Timestamp + ,
-        })
+        proposals[pID] = Proposal({kind: t, startTime: block.timestamp, pro: 0});
 
-        totalProposals++
+        totalProposals++;
+        emit CreatedProposal(proposalID, t, data);
+    }
+
+    function Vote(uint proposalID) public { 
+        // requirements to vote 
+        // 1. is a valid voter 
+        // 2. voter hasnt voted yet
+        // 3. proposal has started
+        // 4. proposal hasnt ended
+
+        uint pid = proposalID % 8;
+        Proposal storage proposal = proposals[pid];
+        Voter storage voter = voters[msg.sender];
+        uint votedAt = voter.votes[pid];
+
+        require(voter.weight > 0);
+        require(votedAt < proposal.startTime, "already voted for this proposal");
+        require(block.timestamp > proposal.startTime );
+        require(block.timestamp < proposal.startTime + Times[uint(proposal.kind)]);
+
+        proposal.pro++;
+        voter.votes[pid] = block.timestamp ;
+
+        emit VoteEvent(proposalID, msg.sender);
     }
 
 
-    function Vote(uint proposalID) public { 
-        voter = voters[msg.sender]
-        pid = proposalID % 8
+    function CompleteProposal(uint proposalID) public {
+        // no restriction on completing a proposal more than once.  
+        // but we cant vote on a proposal past its end
 
-        // must be a valid voter
-        require(voter.weight > 0)
+        uint pID = proposalID % 8;
+        Proposal storage proposal = proposals[pID];
+        uint time = Times[uint(proposal.kind)];
+        uint required = RequiredPercentage[uint(proposal.kind)];
 
-        proposal = proposals[pid]
-        votedAt = voter.votes[pid]
+        require(block.timestamp > proposal.startTime + time, "vote has not ended");
 
-        require(votedAt < proposal.startTime, "already voted for this proposal")
+        bool passed;
 
-        proposal.pro++
-        voter.votes[pid] = block.timestamp 
+        if ((proposal.pro * 100) / totalVoters  > required){
+            passed = true;
+        }
+        else {
+            passed = false;
+        }
 
+        emit FinishedProposal(proposalID, proposal.kind, proposal.startTime, proposal.pro, totalVoters, passed);
     }
 }
