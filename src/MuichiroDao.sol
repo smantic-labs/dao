@@ -51,7 +51,7 @@ contract MuichiroDao {
         uint pID = proposalID % 8;
         Proposal memory prev = proposals[pID];
 
-        require(block.timestamp > prev.startTime + Times[uint(prev.kind)], "must wait for the next proposal to end");
+        assert(block.timestamp > prev.startTime + Times[uint(prev.kind)]);
 
         proposals[pID] = Proposal({kind: t, startTime: block.timestamp, pro: 0});
 
@@ -77,7 +77,7 @@ contract MuichiroDao {
         assert(block.timestamp > proposal.startTime );
         assert(block.timestamp < proposal.startTime + Times[uint(proposal.kind)]);
 
-        proposal.pro++;
+        proposal.pro += voter.weight;
         voter.votes[pid] = block.timestamp ;
 
         emit VoteEvent(proposalID, msg.sender);
@@ -110,15 +110,17 @@ contract MuichiroDao {
 
     function Voter(address addr) public payable { 
         // Become a voter or pay for someone else to become a voter. 
+        // they must not already be a voter, and have not delegated their vote to someone else
 
         // value should be 0.05 eth
         assert(msg.value >= 50000000000000000);
         Voter storage voter = Voters[addr];
         assert(voter.weight == 0);
+        assert(voter.delegate == address(0));
 
         bool sent = vault.send(msg.value);
 
-        require(sent == true, "failed to send eth to vault");
+        assert(sent == true);
 
         voter.weight = 1;
         voter.delegate = addr;
@@ -136,8 +138,12 @@ contract MuichiroDao {
         assert(voter.weight != 0);
         assert(delegate.weight != 0);
 
-        voter.delegate = _delegate;
+        Voter storage prevDelegate = Voters[voter.delegate]
+        if (prevDelegate != address(0)) { 
+            prevDelegate.weight--;
+        }
 
+        voter.delegate = _delegate;
         delegate.weight++;
     }
 }
