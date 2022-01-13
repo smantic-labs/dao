@@ -6,13 +6,12 @@ contract MuichiroDao {
     uint totalVoters;
     uint totalProposals;
 
-
     // vault is the receiptent of membership fees. 
     address payable vault; 
 
-    enum ProposalType{ ImmediateBan, Ban,  Whitelist, ResetWorld }
-    uint[8] Times = [ 1 hours, 1 days, 1 days, 1 weeks ];
-    uint[8] RequiredPercentage = [ 60, 30, 30, 75  ];
+    enum ProposalType{ ImmediateBan, Ban, Unban, Whitelist, ResetWorld }
+    uint[8] Times = [ 1 hours, 1 days, 1 days, 1 days, 1 weeks ];
+    uint[8] RequiredPercentage = [ 60, 30, 30, 30, 75  ];
 
     struct Proposal { 
         ProposalType kind;
