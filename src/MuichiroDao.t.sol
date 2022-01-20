@@ -9,7 +9,7 @@ contract MuichiroDaoTest is DSTest {
     MuichiroDao dao;
 
     function setUp() public {
-        dao = new MuichiroDao();
+        dao = new MuichiroDao(payable(address(0)));
     }
 
     function testFail_basic_sanity() public {

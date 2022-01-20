@@ -36,7 +36,7 @@ contract MuichiroDao {
     event VoteEvent(uint indexed ProposalID, address voter);
 
     constructor(address payable _vault){ 
-        vault = _vault
+        vault = _vault;
     }
 
     function NewProposal(ProposalType t, string calldata data) public {
@@ -72,7 +72,7 @@ contract MuichiroDao {
 
         assert(voter.weight > 0);
         assert(voter.delegate == msg.sender);
-        assert(votedAt < proposal.startTime, "already voted for this proposal");
+        assert(votedAt < proposal.startTime);
         assert(block.timestamp > proposal.startTime );
         assert(block.timestamp < proposal.startTime + Times[uint(proposal.kind)]);
 
@@ -107,22 +107,22 @@ contract MuichiroDao {
     }
 
 
-    function Voter(address addr) public payable { 
+    function NewVoter(address addr) public payable { 
         // Become a voter or pay for someone else to become a voter. 
         // they must not already be a voter, and have not delegated their vote to someone else
 
         // value should be 0.05 eth
         assert(msg.value >= 50000000000000000);
-        Voter storage voter = Voters[addr];
-        assert(voter.weight == 0);
-        assert(voter.delegate == address(0));
+        Voter storage v = voters[addr];
+        assert(v.weight == 0);
+        assert(v.delegate == address(0));
 
         bool sent = vault.send(msg.value);
 
         assert(sent == true);
 
-        voter.weight = 1;
-        voter.delegate = addr;
+        v.weight = 1;
+        v.delegate = addr;
     }
 
 
@@ -131,14 +131,14 @@ contract MuichiroDao {
         // Delegate to yourself to unassign delagation.
         // cannot delegate if you are not a valid voter.
         // cannot delegate to a non voter
-        Voter storage voter = Voters[msg.sender]
-        Voter storage delegate = Voters[_delegate) 
+        Voter storage voter = voters[msg.sender];
+        Voter storage delegate = voters[_delegate];
 
         assert(voter.weight != 0);
         assert(delegate.weight != 0);
 
-        Voter storage prevDelegate = Voters[voter.delegate]
-        if (prevDelegate != address(0)) { 
+        if (voter.delegate != address(0) ) { 
+            Voter storage prevDelegate = voters[voter.delegate];
             prevDelegate.weight--;
         }
 
