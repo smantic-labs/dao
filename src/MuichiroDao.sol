@@ -3,15 +3,15 @@ pragma solidity ^0.8.6;
 /// @title MuichiroDao
 contract MuichiroDao {
 
-    uint totalVoters;
-    uint totalProposals;
+    uint public totalVoters;
+    uint public totalProposals;
 
     // vault is the receiptent of membership fees. 
-    address payable vault; 
+    address payable public immutable vault; 
 
-    enum ProposalType{ ImmediateBan, Ban, Unban, Whitelist, ResetWorld }
-    uint[8] Times = [ 1 hours, 1 days, 1 days, 1 days, 1 weeks ];
-    uint[8] RequiredPercentage = [ 60, 30, 30, 30, 75  ];
+    enum  ProposalType{ ImmediateBan, Ban, Unban, Whitelist, ResetWorld }
+    uint[8] public Times = [ 1 hours, 1 days, 1 days, 1 days, 1 weeks ];
+    uint[8] public RequiredPercentage = [ 60, 30, 30, 30, 75  ];
 
     struct Proposal { 
         ProposalType kind;
